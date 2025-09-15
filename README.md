@@ -1,20 +1,22 @@
-This is a simple SMTP simulator server for bounces, complaints, etc.
+This is a simple SMTP simulator server for bounces and complaints. 
+
+> For Hyvor Relay customers, the email domain is `simulator.hyvor-relay.com`. For example, to simulate a busy mailbox, send an email to `busy@simulator.hyvor-relay.com`.
 
 ## Installation
 
 <!--  -->
 
-### Email Addresses
+## Email Addresses
 
 Send emails to the following addresses to simulate different scenarios.
 
-#### Accept
+### Accept
 
 | Email Local Part | Description                                            | Status Code | Enhanced Code |
 | ---------------- | ------------------------------------------------------ | ----------- | ------------- |
 | `accept@`        | Accepts the email and simulates a successful delivery. | 250         | 2.0.0         |
 
-#### Synchronous Bounces
+### Synchronous Bounces
 
 These emails respond with a bounce immediately within the SMTP transaction (when the DATA command is completed).
 
@@ -26,7 +28,7 @@ These emails respond with a bounce immediately within the SMTP transaction (when
 | `disabled@`      | Simulates a disabled email address.                                  | 550         | 5.1.2         |
 | `spam@`          | Simulates a spam rejection (usually due to infrastructure problems). | 550         | 5.7.1         |
 
-#### Asynchronous Bounces
+### Asynchronous Bounces
 
 These emails accept the message initially but later send a bounce notification (DSN) back to the sender. The bounce is sent as per RFC3464.
 
@@ -36,7 +38,7 @@ These emails accept the message initially but later send a bounce notification (
 | `disabled+async@` | Simulates a disabled email address. | 550         | 5.1.2         |
 | `spam+async@`     | Simulates a spam rejection.         | 550         | 5.7.1         |
 
-#### Complaints
+### Complaints
 
 These emails accept the message initially but later send a complaint notification back to the sender. The complaint is sent as per RFC5965.
 
