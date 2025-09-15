@@ -1,6 +1,6 @@
 This is a simple SMTP simulator server for bounces and complaints. 
 
-> For Hyvor Relay customers, the email domain is `simulator.hyvor-relay.com`. For example, to simulate a busy mailbox, send an email to `busy@simulator.hyvor-relay.com`.
+> For Hyvor Relay customers, the email domain is `simulator.relay.hyvor.com`. For example, to simulate a busy mailbox, send an email to `busy@simulator.relay.hyvor.com`.
 
 ## Installation
 
@@ -10,25 +10,20 @@ This is a simple SMTP simulator server for bounces and complaints.
 
 Send emails to the following addresses to simulate different scenarios.
 
-### Accept
+### Synchronous Responses
+
+These emails respond with a bounce immediately within the SMTP transaction after the `DATA` command is completed.
 
 | Email Local Part | Description                                            | Status Code | Enhanced Code |
 | ---------------- | ------------------------------------------------------ | ----------- | ------------- |
 | `accept@`        | Accepts the email and simulates a successful delivery. | 250         | 2.0.0         |
+| `busy@`          | Simulates a busy mailbox.                              | 450         | 4.2.1         |
+| `tempfail@`      | Simulates a temporary failure.                         | 451         | 4.3.0         |
+| `missing@`       | Simulates a hard bounce.                               | 550         | 5.1.1         |
+| `disabled@`      | Simulates a disabled email address.                    | 550         | 5.1.2         |
+| `spam@`          | Simulates a spam rejection.                            | 550         | 5.7.1         |
 
-### Synchronous Bounces
-
-These emails respond with a bounce immediately within the SMTP transaction (when the DATA command is completed).
-
-| Email Local Part | Description                                                          | Status Code | Enhanced Code |
-| ---------------- | -------------------------------------------------------------------- | ----------- | ------------- |
-| `busy@`          | Simulates a busy mailbox.                                            | 450         | 4.2.1         |
-| `tempfail@`      | Simulates a temporary failure.                                       | 451         | 4.3.0         |
-| `missing@`       | Simulates a hard bounce.                                             | 550         | 5.1.1         |
-| `disabled@`      | Simulates a disabled email address.                                  | 550         | 5.1.2         |
-| `spam@`          | Simulates a spam rejection (usually due to infrastructure problems). | 550         | 5.7.1         |
-
-### Asynchronous Bounces
+### Asynchronous Responses
 
 These emails accept the message initially but later send a bounce notification (DSN) back to the sender. The bounce is sent as per RFC3464.
 
