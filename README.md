@@ -33,7 +33,7 @@ These emails accept the message initially but later send a bounce notification (
 | `disabled+async@` | Simulates a disabled email address. | 550         | 5.1.2         |
 | `spam+async@`     | Simulates a spam rejection.         | 550         | 5.7.1         |
 
-- If there are multiple recipients with different bounce types, a single DSN will be sent with all the failed recipients listed. Delay will be the maximum of all the delays.
+- If there are multiple recipients with different bounce types, a single DSN will be sent with all the failed recipients listed.
 
 ### Complaints
 
@@ -43,7 +43,7 @@ These emails accept the message initially but later send a complaint notificatio
 | ---------------- | --------------------------- |
 | `complaint@`     | Simulates a user complaint. |
 
-### Custom Responses
+<!-- ### Custom Responses
 
 Sometimes, you might need further customization of the server response. To simulate these scenarios, send emails to `custom@` and use the following headers to define the response:
 
@@ -54,4 +54,4 @@ X-Custom-Message: <custom-message>
 X-Custom-Delay: <delay-in-seconds-for-async-responses>
 ```
 
-It is also possible to extend the responses from any other email address with these custom headers.
+It is also possible to extend the responses from any other email address with these custom headers. The default delay is zero (bounce emails are sent immediately). -->
