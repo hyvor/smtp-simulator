@@ -41,9 +41,8 @@ func sendBounces(originalMailFrom string, bounceActions map[string]Action) {
 
 // TEMPLATE ============
 
-const DSN_TEMPLATE = `From: Hyvor SMTP Simulator <simulator.hyvor-relay.com>
+const DSN_TEMPLATE = `From: Hyvor SMTP Simulator <smtp@simulator.hyvor-relay.com>
 Message-Id: <123456789@simulator.hyvor-relay.com>
-From: Hyvor SMTP Simulator <simulator.hyvor-relay.com>
 Subject: {{.Subject}}
 To: <{{.To}}>
 MIME-Version: 1.0
