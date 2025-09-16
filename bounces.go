@@ -2,8 +2,8 @@ package main
 
 import (
 	"bytes"
-	"html/template"
 	"log"
+	"text/template"
 )
 
 func sendBounces(originalMailFrom string, bounceActions map[string]Action) {
