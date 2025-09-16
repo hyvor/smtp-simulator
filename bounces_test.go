@@ -10,7 +10,26 @@ import (
 
 func TestSendBounces(t *testing.T) {
 
-	//
+	sentTo := ""
+	sentBody := ""
+
+	sendMail = func(to, body string) error {
+		sentTo = to
+		sentBody = body
+		return nil
+	}
+
+	sendBounces("bounces@hyvor.com", map[string]Action{
+		"failed@example.com": {
+			Message:      "User not found",
+			EnhancedCode: EnhancedCode([3]int{5, 1, 1}),
+		},
+	})
+
+	assert.Equal(t, "bounces@hyvor.com", sentTo)
+	assert.Contains(t, sentBody, "This is an automatically generated Delivery Status Notification.")
+	assert.Contains(t, sentBody, "Delivery to the following recipients failed permanently:")
+	assert.Contains(t, sentBody, "- failed@example.com: User not found")
 
 }
 
