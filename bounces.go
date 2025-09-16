@@ -9,7 +9,6 @@ import (
 func sendBounces(originalMailFrom string, bounceActions map[string]Action) {
 
 	data := DnsTemplateData{
-		Subject:          "Delivery Status Notification (Failure)",
 		To:               originalMailFrom,
 		PlainTextMessage: "This is an automatically generated Delivery Status Notification.\n\nDelivery to the following recipients failed permanently:\n",
 		Recipients:       []DsnRecipient{},
@@ -43,7 +42,7 @@ func sendBounces(originalMailFrom string, bounceActions map[string]Action) {
 
 const DSN_TEMPLATE = `From: Hyvor SMTP Simulator <simulator@{{.Domain}}>
 Message-Id: <123456789@{{.Domain}}>
-Subject: {{.Subject}}
+Subject: Delivery Status Notification (Failure)
 To: <{{.To}}>
 MIME-Version: 1.0
 Content-Type: multipart/report; report-type=delivery-status;
@@ -72,7 +71,6 @@ Content-Type: message/rfc822
 --__boundary__--`
 
 type DnsTemplateData struct {
-	Subject          string
 	To               string
 	PlainTextMessage string
 	Recipients       []DsnRecipient

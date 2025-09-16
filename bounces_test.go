@@ -8,10 +8,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestSendBounces(t *testing.T) {
+
+	//
+
+}
+
 func TestRenderDsnTempl(t *testing.T) {
 
 	data := DnsTemplateData{
-		Subject:          "Delivery Status Notification (Failure)",
 		To:               "user@example.com",
 		PlainTextMessage: "Bad news everyone",
 		Recipients: []DsnRecipient{

@@ -98,8 +98,9 @@ func splitAddress(address string) (local, domain string) {
 }
 
 var smtpSendMail = netsmtp.SendMail
+var sendMail = sendMailHandler
 
-func sendMail(to string, body string) error {
+func sendMailHandler(to string, body string) error {
 
 	_, domain := splitAddress(to)
 
