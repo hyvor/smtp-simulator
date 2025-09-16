@@ -23,7 +23,7 @@ These emails respond with a bounce immediately within the SMTP transaction after
 | `disabled@`      | Simulates a disabled email address.                    | 550         | 5.1.2         |
 | `spam@`          | Simulates a spam rejection.                            | 550         | 5.7.1         |
 
-### Asynchronous Responses
+### Asynchronous Bounces
 
 These emails accept the message initially but later send a bounce notification (DSN) back to the sender. The bounce is sent as per RFC3464.
 
@@ -51,3 +51,5 @@ X-Custom-Enhanced-Code: <enhanced-code>
 X-Custom-Message: <custom-message>
 X-Custom-Delay: <delay-in-seconds-for-async-responses>
 ```
+
+It is also possible to extend the responses from any other email address with these custom headers.
