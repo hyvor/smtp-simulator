@@ -24,7 +24,7 @@ func TestSendBounces(t *testing.T) {
 			Message:      "User not found",
 			EnhancedCode: EnhancedCode([3]int{5, 1, 1}),
 		},
-	})
+	}, 0)
 
 	assert.Equal(t, "bounces@hyvor.com", sentTo)
 	assert.Contains(t, sentBody, "This is an automatically generated Delivery Status Notification.")

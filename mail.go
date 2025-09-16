@@ -52,7 +52,14 @@ func (m *Mail) Process() error {
 	}
 
 	if len(bounceActions) > 0 {
-		go sendBounces(m.MailFrom, bounceActions)
+		delay := 0
+		for _, action := range bounceActions {
+			if action.AsyncDelay > delay {
+				delay = action.AsyncDelay
+			}
+		}
+
+		go sendBounces(m.MailFrom, bounceActions, delay)
 	}
 
 	return nil

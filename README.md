@@ -33,6 +33,8 @@ These emails accept the message initially but later send a bounce notification (
 | `disabled+async@` | Simulates a disabled email address. | 550         | 5.1.2         |
 | `spam+async@`     | Simulates a spam rejection.         | 550         | 5.7.1         |
 
+- If there are multiple recipients with different bounce types, a single DSN will be sent with all the failed recipients listed. Delay will be the maximum of all the delays.
+
 ### Complaints
 
 These emails accept the message initially but later send a complaint notification back to the sender. The complaint is sent as per RFC5965.
