@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net"
 	netsmtp "net/smtp"
+	"sync"
 	"testing"
 	"time"
 
@@ -29,7 +30,11 @@ func TestProcessMailAsyncBounce(t *testing.T) {
 	bouncesActions := map[string]Action{}
 	bouncesDelay := 1
 
+	writeMx := sync.Mutex{}
+
 	sendBounces = func(originalMailFrom string, bounceActions map[string]Action, delaySeconds int) {
+		writeMx.Lock()
+		defer writeMx.Unlock()
 		bouncesTo = originalMailFrom
 		bouncesActions = bounceActions
 		bouncesDelay = delaySeconds
@@ -40,6 +45,8 @@ func TestProcessMailAsyncBounce(t *testing.T) {
 	time.Sleep(20 * time.Millisecond) // Wait for goroutine to finish
 
 	assert.NoError(t, err)
+	writeMx.Lock()
+	defer writeMx.Unlock()
 	assert.Equal(t, "bounces@example.com", bouncesTo)
 	_, exists := bouncesActions["missing+async@localhost"]
 	assert.True(t, exists)
@@ -89,7 +96,11 @@ func TestProcessMailComplaint(t *testing.T) {
 	complaintRecipient := ""
 	complaintDelay := 1
 
+	mx := sync.Mutex{}
+
 	sendComplaint = func(originalMailFrom string, to string, delay int) {
+		mx.Lock()
+		defer mx.Unlock()
 		complaintSendTo = originalMailFrom
 		complaintRecipient = to
 		complaintDelay = delay
@@ -99,6 +110,9 @@ func TestProcessMailComplaint(t *testing.T) {
 	err := mail.Process()
 
 	time.Sleep(20 * time.Millisecond) // Wait for goroutine to finish
+
+	mx.Lock()
+	defer mx.Unlock()
 
 	assert.NoError(t, err)
 	assert.Equal(t, "bounces@example.com", complaintSendTo)
