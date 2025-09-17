@@ -54,7 +54,7 @@ func NewSmtpServer() *smtp.Server {
 	be := &Backend{}
 	s := smtp.NewServer(be)
 
-	s.Addr = "localhost:1025"
+	s.Addr = "0.0.0.0:25"
 	s.Domain = "localhost"
 	s.WriteTimeout = 50 * time.Second
 	s.ReadTimeout = 50 * time.Second
