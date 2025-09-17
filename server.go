@@ -43,21 +43,25 @@ func (s *Session) Data(r io.Reader) error {
 	return err
 }
 
-func (s *Session) Reset() {}
+func (s *Session) Reset() {
+	s.mail = NewMail()
+}
 
 func (s *Session) Logout() error {
 	return nil
 }
+
+var smtpPort = "25"
 
 func NewSmtpServer() *smtp.Server {
 
 	be := &Backend{}
 	s := smtp.NewServer(be)
 
-	s.Addr = "localhost:1025"
-	s.Domain = "localhost"
-	s.WriteTimeout = 50 * time.Second
-	s.ReadTimeout = 50 * time.Second
+	s.Addr = "0.0.0.0:" + smtpPort
+	s.Domain = getDomain()
+	s.WriteTimeout = 10 * time.Second
+	s.ReadTimeout = 10 * time.Second
 	s.MaxMessageBytes = 1024 * 1024
 	s.MaxRecipients = 50
 	s.AllowInsecureAuth = true

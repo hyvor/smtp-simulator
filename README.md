@@ -4,7 +4,36 @@ This is a simple SMTP simulator server for bounces and complaints.
 
 ## Installation
 
-<!--  -->
+### Using Docker
+
+`hyvor/smtp-simulator` is a minimal Docker image that exposes port `25` for SMTP.
+
+```bash
+docker run -p 25:25 hyvor/smtp-simulator
+```
+
+### Using Docker Compose
+
+```yaml
+services:
+    smtp-simulator:
+        image: hyvor/smtp-simulator
+        ports:
+        - "25:25"
+```
+
+### From Source
+
+```bash
+git clone https://github.com/hyvor/smtp-simulator
+cd smtp-simulator
+go build -o smtp-simulator .
+./smtp-simulator
+```
+
+## Environment Variables
+
+- `DOMAIN` (default: `localhost`): The domain name of the SMTP server. You should set up a MX record for this domain to point to the server's IP address. This is used in the `HELO`/`EHLO` command and in the `From` address of bounce emails.
 
 ## Email Addresses
 
@@ -33,6 +62,8 @@ These emails accept the message initially but later send a bounce notification (
 | `disabled+async@` | Simulates a disabled email address. | 550         | 5.1.2         |
 | `spam+async@`     | Simulates a spam rejection.         | 550         | 5.7.1         |
 
+- If there are multiple recipients with different bounce types, a single DSN will be sent with all the failed recipients listed.
+
 ### Complaints
 
 These emails accept the message initially but later send a complaint notification back to the sender. The complaint is sent as per RFC5965.
@@ -41,7 +72,7 @@ These emails accept the message initially but later send a complaint notificatio
 | ---------------- | --------------------------- |
 | `complaint@`     | Simulates a user complaint. |
 
-### Custom Responses
+<!-- ### Custom Responses
 
 Sometimes, you might need further customization of the server response. To simulate these scenarios, send emails to `custom@` and use the following headers to define the response:
 
@@ -52,4 +83,4 @@ X-Custom-Message: <custom-message>
 X-Custom-Delay: <delay-in-seconds-for-async-responses>
 ```
 
-It is also possible to extend the responses from any other email address with these custom headers.
+It is also possible to extend the responses from any other email address with these custom headers. The default delay is zero (bounce emails are sent immediately). -->

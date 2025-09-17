@@ -52,7 +52,14 @@ func (m *Mail) Process() error {
 	}
 
 	if len(bounceActions) > 0 {
-		go sendBounces(m.MailFrom, bounceActions)
+		delay := 0
+		for _, action := range bounceActions {
+			if action.AsyncDelay > delay {
+				delay = action.AsyncDelay
+			}
+		}
+
+		go sendBounces(m.MailFrom, bounceActions, delay)
 	}
 
 	return nil
@@ -99,6 +106,7 @@ func splitAddress(address string) (local, domain string) {
 
 var smtpSendMail = netsmtp.SendMail
 var sendMail = sendMailHandler
+var netLookupMX = net.LookupMX
 
 func sendMailHandler(to string, body string) error {
 
@@ -108,7 +116,7 @@ func sendMailHandler(to string, body string) error {
 		return errors.New("invalid MAIL FROM address")
 	}
 
-	mxRecords, err := net.LookupMX(domain)
+	mxRecords, err := netLookupMX(domain)
 	if err != nil || len(mxRecords) == 0 {
 		log.Fatalf("Could not find MX records for %s: %v", domain, err)
 	}
@@ -120,7 +128,7 @@ func sendMailHandler(to string, body string) error {
 	err = smtpSendMail(
 		mxHost+":25",
 		nil,
-		"from@hyvor-smtp-simulator.com",
+		"simulator@"+getDomain(),
 		[]string{to},
 		[]byte(body),
 	)
