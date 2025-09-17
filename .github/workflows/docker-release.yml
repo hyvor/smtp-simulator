@@ -53,10 +53,3 @@ jobs:
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
-        
-    - name: Generate artifact attestation
-      uses: actions/attest-build-provenance@v1
-      with:
-        subject-name: hyvor/smtp-simulator
-        subject-digest: ${{ steps.build.outputs.digest }}
-        push-to-registry: true
