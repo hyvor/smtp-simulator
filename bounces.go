@@ -7,7 +7,9 @@ import (
 	"time"
 )
 
-func sendBounces(originalMailFrom string, bounceActions map[string]Action, delaySeconds int) {
+var sendBounces = sendBouncesHandler
+
+func sendBouncesHandler(originalMailFrom string, bounceActions map[string]Action, delaySeconds int) {
 
 	if delaySeconds > 0 {
 		time.Sleep(time.Duration(delaySeconds) * time.Second)

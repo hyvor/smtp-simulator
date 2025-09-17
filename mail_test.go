@@ -5,9 +5,106 @@ import (
 	"net"
 	netsmtp "net/smtp"
 	"testing"
+	"time"
 
+	"github.com/emersion/go-smtp"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestProcessMailAsyncBounce(t *testing.T) {
+
+	mail := NewMail()
+
+	err := mail.Process()
+	assert.Equal(t, ErrorNoMailFrom, err)
+
+	mail.MailFrom = "bounces@example.com"
+
+	err = mail.Process()
+	assert.Equal(t, ErrorNoRcptTo, err)
+
+	mail.RcptTo = []string{"missing+async@localhost"}
+
+	bouncesTo := ""
+	bouncesActions := map[string]Action{}
+	bouncesDelay := 1
+
+	sendBounces = func(originalMailFrom string, bounceActions map[string]Action, delaySeconds int) {
+		bouncesTo = originalMailFrom
+		bouncesActions = bounceActions
+		bouncesDelay = delaySeconds
+	}
+
+	err = mail.Process()
+
+	time.Sleep(20 * time.Millisecond) // Wait for goroutine to finish
+
+	assert.NoError(t, err)
+	assert.Equal(t, "bounces@example.com", bouncesTo)
+	_, exists := bouncesActions["missing+async@localhost"]
+	assert.True(t, exists)
+	action := bouncesActions["missing+async@localhost"]
+	assert.Equal(t, "User unknown", action.Message)
+	assert.Equal(t, "5.1.1", action.EnhancedCode.String())
+	assert.Equal(t, 550, action.Code)
+
+	assert.Equal(t, 0, bouncesDelay)
+
+	mail.MailFrom = "bounce@example.com"
+	mail.RcptTo = []string{"unknown@localhost"}
+
+	err = mail.Process()
+
+	smtpErr, ok := err.(*smtp.SMTPError)
+	assert.True(t, ok)
+	assert.Equal(t, 550, smtpErr.Code)
+	assert.Equal(t, "Unknown local part", smtpErr.Message)
+
+}
+
+func TestProcessMailImmediateBounce(t *testing.T) {
+
+	mail := NewMail()
+
+	mail.MailFrom = "bounces@example.com"
+	mail.RcptTo = []string{"missing@localhost"}
+
+	err := mail.Process()
+
+	smtpErr, ok := err.(*smtp.SMTPError)
+	assert.True(t, ok)
+	assert.Equal(t, 550, smtpErr.Code)
+	assert.Equal(t, "User unknown", smtpErr.Message)
+
+}
+
+func TestProcessMailComplaint(t *testing.T) {
+
+	mail := NewMail()
+
+	mail.MailFrom = "bounces@example.com"
+	mail.RcptTo = []string{"complaint@localhost"}
+
+	complaintSendTo := ""
+	complaintRecipient := ""
+	complaintDelay := 1
+
+	sendComplaint = func(originalMailFrom string, to string, delay int) {
+		complaintSendTo = originalMailFrom
+		complaintRecipient = to
+		complaintDelay = delay
+	}
+
+	// Simulate processing the mail
+	err := mail.Process()
+
+	time.Sleep(20 * time.Millisecond) // Wait for goroutine to finish
+
+	assert.NoError(t, err)
+	assert.Equal(t, "bounces@example.com", complaintSendTo)
+	assert.Equal(t, "complaint@localhost", complaintRecipient)
+	assert.Equal(t, 0, complaintDelay)
+}
 
 func TestSplitAddress(t *testing.T) {
 
