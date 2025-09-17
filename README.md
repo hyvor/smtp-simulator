@@ -4,7 +4,36 @@ This is a simple SMTP simulator server for bounces and complaints.
 
 ## Installation
 
-<!--  -->
+### Using Docker
+
+`hyvor/smtp-simulator` is a minimal Docker image that exposes port `25` for SMTP.
+
+```bash
+docker run -p 25:25 hyvor/smtp-simulator
+```
+
+### Using Docker Compose
+
+```yaml
+services:
+    smtp-simulator:
+        image: hyvor/smtp-simulator
+        ports:
+        - "25:25"
+```
+
+### From Source
+
+```bash
+git clone https://github.com/hyvor/smtp-simulator
+cd smtp-simulator
+go build -o smtp-simulator .
+./smtp-simulator
+```
+
+## Environment Variables
+
+- `DOMAIN` (default: `localhost`): The domain name of the SMTP server. You should set up a MX record for this domain to point to the server's IP address. This is used in the `HELO`/`EHLO` command and in the `From` address of bounce emails.
 
 ## Email Addresses
 
