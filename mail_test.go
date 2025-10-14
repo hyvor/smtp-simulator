@@ -16,15 +16,15 @@ func TestProcessMailAsyncBounce(t *testing.T) {
 
 	mail := NewMail()
 
-	err := mail.Process()
+	err := mail.Complete()
 	assert.Equal(t, ErrorNoMailFrom, err)
 
 	mail.MailFrom = "bounces@example.com"
 
-	err = mail.Process()
+	err = mail.Complete()
 	assert.Equal(t, ErrorNoRcptTo, err)
 
-	mail.RcptTo = []string{"missing+async@localhost"}
+	mail.Rcpt("missing+async@localhost")
 
 	bouncesTo := ""
 	bouncesActions := map[string]Action{}
@@ -40,7 +40,7 @@ func TestProcessMailAsyncBounce(t *testing.T) {
 		bouncesDelay = delaySeconds
 	}
 
-	err = mail.Process()
+	err = mail.Complete()
 
 	time.Sleep(20 * time.Millisecond) // Wait for goroutine to finish
 
@@ -58,9 +58,7 @@ func TestProcessMailAsyncBounce(t *testing.T) {
 	assert.Equal(t, 0, bouncesDelay)
 
 	mail.MailFrom = "bounce@example.com"
-	mail.RcptTo = []string{"unknown@localhost"}
-
-	err = mail.Process()
+	err = mail.Rcpt("unknown@localhost")
 
 	smtpErr, ok := err.(*smtp.SMTPError)
 	assert.True(t, ok)
@@ -74,14 +72,10 @@ func TestProcessMailImmediateBounce(t *testing.T) {
 	mail := NewMail()
 
 	mail.MailFrom = "bounces@example.com"
-	mail.RcptTo = []string{"missing@localhost"}
+	err := mail.Rcpt("missing@localhost")
 
-	err := mail.Process()
-
-	smtpErr, ok := err.(*smtp.SMTPError)
-	assert.True(t, ok)
-	assert.Equal(t, 550, smtpErr.Code)
-	assert.Equal(t, "User unknown", smtpErr.Message)
+	assert.Equal(t, 550, err.Code)
+	assert.Equal(t, "User unknown", err.Message)
 
 }
 
@@ -90,7 +84,7 @@ func TestProcessMailComplaint(t *testing.T) {
 	mail := NewMail()
 
 	mail.MailFrom = "bounces@example.com"
-	mail.RcptTo = []string{"complaint@localhost"}
+	mail.Rcpt("complaint@localhost")
 
 	complaintSendTo := ""
 	complaintRecipient := ""
@@ -107,7 +101,7 @@ func TestProcessMailComplaint(t *testing.T) {
 	}
 
 	// Simulate processing the mail
-	err := mail.Process()
+	err := mail.Complete()
 
 	time.Sleep(20 * time.Millisecond) // Wait for goroutine to finish
 

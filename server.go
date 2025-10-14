@@ -26,8 +26,11 @@ func (s *Session) Mail(from string, opts *smtp.MailOptions) error {
 }
 
 func (s *Session) Rcpt(to string, opts *smtp.RcptOptions) error {
-	s.mail.RcptTo = append(s.mail.RcptTo, to)
-	return nil
+	if s.mail.MailFrom == "" {
+		return ErrorNoMailFrom
+	}
+
+	return s.mail.Rcpt(to)
 }
 
 func (s *Session) Data(r io.Reader) error {
@@ -38,9 +41,7 @@ func (s *Session) Data(r io.Reader) error {
 		return err
 	}
 
-	err = s.mail.Process()
-
-	return err
+	return s.mail.Complete()
 }
 
 func (s *Session) Reset() {

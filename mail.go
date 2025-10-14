@@ -14,12 +14,23 @@ import (
 type Mail struct {
 	MailFrom string // Bounces, complaints are sent back to this address
 	RcptTo   []string
+	bounceActions map[string]Action
+	complaints    []PendingComplaint
+}
+
+type PendingComplaint struct {
+	OriginalMailFrom string
+	To               string
+	Delay            int
 }
 
 func NewMail() Mail {
 	return Mail{
 		MailFrom: "",
 		RcptTo:   []string{},
+		
+		bounceActions: map[string]Action{},
+		complaints:    []PendingComplaint{},
 	}
 }
 
@@ -32,41 +43,7 @@ var ErrorNoRcptTo = &smtp.SMTPError{
 	Message: "No RCPT TO specified",
 }
 
-func (m *Mail) Process() error {
-
-	if m.MailFrom == "" {
-		return ErrorNoMailFrom
-	}
-
-	if len(m.RcptTo) == 0 {
-		return ErrorNoRcptTo
-	}
-
-	bounceActions := map[string]Action{}
-
-	for _, to := range m.RcptTo {
-		err := m.handleRcpt(to, &bounceActions)
-		if err != nil {
-			return err
-		}
-	}
-
-	if len(bounceActions) > 0 {
-		delay := 0
-		for _, action := range bounceActions {
-			if action.AsyncDelay > delay {
-				delay = action.AsyncDelay
-			}
-		}
-
-		go sendBounces(m.MailFrom, bounceActions, delay)
-	}
-
-	return nil
-
-}
-
-func (m *Mail) handleRcpt(to string, bounceActions *map[string]Action) *smtp.SMTPError {
+func (m *Mail) Rcpt(to string) *smtp.SMTPError {
 
 	local, _ := splitAddress(to)
 
@@ -87,12 +64,48 @@ func (m *Mail) handleRcpt(to string, bounceActions *map[string]Action) *smtp.SMT
 			Message:      action.Message,
 		}
 	} else if action.Type == ActionTypeAsyncBounce {
-		(*bounceActions)[to] = action
+		m.bounceActions[to] = action
 	} else if action.Type == ActionTypeAsyncComplaint {
-		go sendComplaint(m.MailFrom, to, action.AsyncDelay)
+		m.complaints = append(m.complaints, PendingComplaint{
+			OriginalMailFrom: m.MailFrom,
+			To:               to,
+			Delay:            action.AsyncDelay,
+		})
 	}
 
+	// add RCPT
+	m.RcptTo = append(m.RcptTo, to)
+
 	return nil // OK response
+
+}
+
+func (m *Mail) Complete() error {
+
+	if m.MailFrom == "" {
+		return ErrorNoMailFrom
+	}
+
+	if len(m.RcptTo) == 0 {
+		return ErrorNoRcptTo
+	}
+
+	if len(m.bounceActions) > 0 {
+		delay := 0
+		for _, action := range m.bounceActions {
+			if action.AsyncDelay > delay {
+				delay = action.AsyncDelay
+			}
+		}
+
+		go sendBounces(m.MailFrom, m.bounceActions, delay)
+	}
+
+	for _, complaint := range m.complaints {
+		go sendComplaint(complaint.OriginalMailFrom, complaint.To, complaint.Delay)
+	}
+
+	return nil
 
 }
 
