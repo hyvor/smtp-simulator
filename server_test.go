@@ -28,14 +28,18 @@ func TestSmtpServer(t *testing.T) {
 	session.Mail("bounces@example.com", nil)
 	assert.Equal(t, "bounces@example.com", session.mail.MailFrom)
 
-	session.Rcpt("user@localhost", nil)
-	assert.Equal(t, "user@localhost", session.mail.RcptTo[0])
-
-	err = session.Data(io.LimitReader(strings.NewReader("Test email body"), 1024))
+	err = session.Rcpt("user@localhost", nil)
+	assert.Equal(t, 0, len(session.mail.RcptTo)) // not added since wrong
 	smtpErr, ok := err.(*smtp.SMTPError)
 	assert.True(t, ok)
 	assert.Equal(t, 550, smtpErr.Code)
 	assert.Equal(t, "Unknown local part", smtpErr.Message)
+
+	err = session.Data(io.LimitReader(strings.NewReader("Test email body"), 1024))
+	smtpErr, ok = err.(*smtp.SMTPError)
+	assert.True(t, ok)
+	assert.Equal(t, 503, smtpErr.Code)
+	assert.Equal(t, "No RCPT TO specified", smtpErr.Message)
 
 	session.Reset()
 	assert.Empty(t, session.mail.RcptTo)
