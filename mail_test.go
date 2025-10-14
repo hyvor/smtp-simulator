@@ -114,6 +114,47 @@ func TestProcessMailComplaint(t *testing.T) {
 	assert.Equal(t, 0, complaintDelay)
 }
 
+func TestMailWithOneRcptOkayOtherFail(t *testing.T) {
+
+	mail := NewMail()
+
+	mail.MailFrom = "bounces@example.com"
+	
+	err := mail.Rcpt("accept@localhost")
+	assert.Equal(t, 250, err.Code)
+
+	err = mail.Rcpt("busy@localhost")
+	assert.Equal(t, 450, err.Code)
+
+	assert.Equal(t, []string{"accept@localhost"}, mail.RcptTo)
+
+	smtpErr := mail.Complete()
+	assert.Nil(t, smtpErr)
+
+}
+
+func TestMailWithOneRcptOkayOneFailAndOtherAsync(t *testing.T) {
+
+	mail := NewMail()
+
+	mail.MailFrom = "bounces@example.com"
+
+	err := mail.Rcpt("accept@localhost")
+	assert.Equal(t, 250, err.Code)	
+
+	err = mail.Rcpt("busy@localhost")
+	assert.Equal(t, 450, err.Code)
+
+	err = mail.Rcpt("missing+async@localhost")
+	assert.Nil(t, err)
+
+	assert.Equal(t, []string{"accept@localhost", "missing+async@localhost"}, mail.RcptTo)
+	
+	smtpErr := mail.Complete()
+	assert.Nil(t, smtpErr)
+
+}
+
 func TestSplitAddress(t *testing.T) {
 
 	tests := []struct {
