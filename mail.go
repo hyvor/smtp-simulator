@@ -43,7 +43,7 @@ var ErrorNoRcptTo = &smtp.SMTPError{
 	Message: "No RCPT TO specified",
 }
 
-func (m *Mail) Rcpt(to string) *smtp.SMTPError {
+func (m *Mail) Rcpt(to string) error {
 
 	local, _ := splitAddress(to)
 
@@ -59,9 +59,9 @@ func (m *Mail) Rcpt(to string) *smtp.SMTPError {
 	if action.Type == ActionTypeSyncResponse {
 		if action.Code == 250 {
 			m.RcptTo = append(m.RcptTo, to) // add RCPT
+			return nil
 		}
 
-		// note: SMTPError works for 200 as well
 		return &smtp.SMTPError{
 			Code:         action.Code,
 			EnhancedCode: action.EnhancedCode.Int(),
