@@ -73,9 +73,12 @@ func TestProcessMailImmediateBounce(t *testing.T) {
 
 	mail.MailFrom = "bounces@example.com"
 	err := mail.Rcpt("missing@localhost")
+	smtpErr, ok := err.(*smtp.SMTPError)
+	assert.True(t, ok)
 
-	assert.Equal(t, 550, err.Code)
-	assert.Equal(t, "User unknown", err.Message)
+
+	assert.Equal(t, 550, smtpErr.Code)
+	assert.Equal(t, "User unknown", smtpErr.Message)
 
 }
 
@@ -121,15 +124,17 @@ func TestMailWithOneRcptOkayOtherFail(t *testing.T) {
 	mail.MailFrom = "bounces@example.com"
 	
 	err := mail.Rcpt("accept@localhost")
-	assert.Equal(t, 250, err.Code)
+	assert.Nil(t, err)
 
 	err = mail.Rcpt("busy@localhost")
-	assert.Equal(t, 450, err.Code)
+	smtpErr, ok := err.(*smtp.SMTPError)
+	assert.True(t, ok)
+	assert.Equal(t, 450, smtpErr.Code)
 
 	assert.Equal(t, []string{"accept@localhost"}, mail.RcptTo)
 
-	smtpErr := mail.Complete()
-	assert.Nil(t, smtpErr)
+	err = mail.Complete()
+	assert.Nil(t, err)
 
 }
 
@@ -140,18 +145,20 @@ func TestMailWithOneRcptOkayOneFailAndOtherAsync(t *testing.T) {
 	mail.MailFrom = "bounces@example.com"
 
 	err := mail.Rcpt("accept@localhost")
-	assert.Equal(t, 250, err.Code)	
+	assert.Nil(t, err)
 
 	err = mail.Rcpt("busy@localhost")
-	assert.Equal(t, 450, err.Code)
+	smtpErr, ok := err.(*smtp.SMTPError)
+	assert.True(t, ok)
+	assert.Equal(t, 450, smtpErr.Code)
 
 	err = mail.Rcpt("missing+async@localhost")
 	assert.Nil(t, err)
 
 	assert.Equal(t, []string{"accept@localhost", "missing+async@localhost"}, mail.RcptTo)
 	
-	smtpErr := mail.Complete()
-	assert.Nil(t, smtpErr)
+	err = mail.Complete()
+	assert.Nil(t, err)
 
 }
 
