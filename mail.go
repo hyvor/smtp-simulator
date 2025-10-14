@@ -57,6 +57,10 @@ func (m *Mail) Rcpt(to string) *smtp.SMTPError {
 	}
 
 	if action.Type == ActionTypeSyncResponse {
+		if action.Code == 250 {
+			m.RcptTo = append(m.RcptTo, to) // add RCPT
+		}
+
 		// note: SMTPError works for 200 as well
 		return &smtp.SMTPError{
 			Code:         action.Code,
@@ -73,11 +77,10 @@ func (m *Mail) Rcpt(to string) *smtp.SMTPError {
 		})
 	}
 
-	// add RCPT
+	// reached for async actions
 	m.RcptTo = append(m.RcptTo, to)
 
-	return nil // OK response
-
+	return nil // OK Response
 }
 
 func (m *Mail) Complete() error {
