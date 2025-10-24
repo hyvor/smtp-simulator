@@ -76,7 +76,6 @@ func TestProcessMailImmediateBounce(t *testing.T) {
 	smtpErr, ok := err.(*smtp.SMTPError)
 	assert.True(t, ok)
 
-
 	assert.Equal(t, 550, smtpErr.Code)
 	assert.Equal(t, "User unknown", smtpErr.Message)
 
@@ -122,7 +121,7 @@ func TestMailWithOneRcptOkayOtherFail(t *testing.T) {
 	mail := NewMail()
 
 	mail.MailFrom = "bounces@example.com"
-	
+
 	err := mail.Rcpt("accept@localhost")
 	assert.Nil(t, err)
 
@@ -156,7 +155,7 @@ func TestMailWithOneRcptOkayOneFailAndOtherAsync(t *testing.T) {
 	assert.Nil(t, err)
 
 	assert.Equal(t, []string{"accept@localhost", "missing+async@localhost"}, mail.RcptTo)
-	
+
 	err = mail.Complete()
 	assert.Nil(t, err)
 
@@ -210,6 +209,36 @@ func TestSendMailhandler(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, "mx1.example.com:25", sendToAddr)
+	assert.Equal(t, "simulator@localhost", fromGot)
+	assert.Equal(t, []string{"bounces@example.com"}, toGot)
+
+}
+
+func TestSendMailHandlerARecord(t *testing.T) {
+
+	netLookupMX = func(domain string) ([]*net.MX, error) {
+		return []*net.MX{}, nil
+	}
+
+	netLookupHost = func(domain string) ([]string, error) {
+		return []string{"192.0.2.1"}, nil
+	}
+
+	sendToAddr := ""
+	fromGot := ""
+	toGot := []string{}
+
+	smtpSendMail = func(addr string, _ netsmtp.Auth, from string, to []string, msg []byte) error {
+		sendToAddr = addr
+		fromGot = from
+		toGot = to
+		return nil
+	}
+
+	err := sendMailHandler("bounces@example.com", "Test email body")
+	assert.NoError(t, err)
+
+	assert.Equal(t, "example.com:25", sendToAddr)
 	assert.Equal(t, "simulator@localhost", fromGot)
 	assert.Equal(t, []string{"bounces@example.com"}, toGot)
 
