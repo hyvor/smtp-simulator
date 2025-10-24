@@ -12,8 +12,8 @@ import (
 )
 
 type Mail struct {
-	MailFrom string // Bounces, complaints are sent back to this address
-	RcptTo   []string
+	MailFrom      string // Bounces, complaints are sent back to this address
+	RcptTo        []string
 	bounceActions map[string]Action
 	complaints    []PendingComplaint
 }
@@ -28,7 +28,7 @@ func NewMail() Mail {
 	return Mail{
 		MailFrom: "",
 		RcptTo:   []string{},
-		
+
 		bounceActions: map[string]Action{},
 		complaints:    []PendingComplaint{},
 	}
@@ -123,6 +123,7 @@ func splitAddress(address string) (local, domain string) {
 var smtpSendMail = netsmtp.SendMail
 var sendMail = sendMailHandler
 var netLookupMX = net.LookupMX
+var netLookupHost = net.LookupHost
 
 func sendMailHandler(to string, body string) error {
 
@@ -133,11 +134,22 @@ func sendMailHandler(to string, body string) error {
 	}
 
 	mxRecords, err := netLookupMX(domain)
-	if err != nil || len(mxRecords) == 0 {
-		log.Fatalf("Could not find MX records for %s: %v", domain, err)
+	var mxHost string
+
+	if err != nil {
+		log.Fatalf("Could not resolve MX for %s: %v", domain, err)
 	}
 
-	mxHost := strings.TrimSuffix(mxRecords[0].Host, ".")
+	if len(mxRecords) > 0 {
+		mxHost = strings.TrimSuffix(mxRecords[0].Host, ".")
+	} else {
+		// No MX records, check if there are A/AAAA records
+		hosts, err := netLookupHost(domain)
+		if err != nil || len(hosts) == 0 {
+			log.Fatalf("Could not resolve host for %s: %v", domain, err)
+		}
+		mxHost = domain
+	}
 
 	log.Println("Sending email to", to, "via domain", mxHost)
 
