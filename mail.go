@@ -133,27 +133,23 @@ func sendMailHandler(to string, body string) error {
 		return errors.New("invalid MAIL FROM address")
 	}
 
-	mxRecords, err := netLookupMX(domain)
+	mxRecords, _ := netLookupMX(domain)
 	var mxHost string
-
-	if err != nil {
-		log.Fatalf("Could not resolve MX for %s: %v", domain, err)
-	}
 
 	if len(mxRecords) > 0 {
 		mxHost = strings.TrimSuffix(mxRecords[0].Host, ".")
 	} else {
 		// No MX records, check if there are A/AAAA records
-		hosts, err := netLookupHost(domain)
-		if err != nil || len(hosts) == 0 {
-			log.Fatalf("Could not resolve host for %s: %v", domain, err)
+		ips, _ := netLookupHost(domain)
+		if len(ips) == 0 {
+			log.Fatalf("Could not resolve host for %s", domain)
 		}
 		mxHost = domain
 	}
 
 	log.Println("Sending email to", to, "via domain", mxHost)
 
-	err = smtpSendMail(
+	err := smtpSendMail(
 		mxHost+":25",
 		nil,
 		"simulator@"+getDomain(),
