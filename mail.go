@@ -16,6 +16,7 @@ type Mail struct {
 	RcptTo        []string
 	bounceActions map[string]Action
 	complaints    []PendingComplaint
+	atDataAction  *Action
 }
 
 type PendingComplaint struct {
@@ -67,6 +68,10 @@ func (m *Mail) Rcpt(to string) error {
 			EnhancedCode: action.EnhancedCode.Int(),
 			Message:      action.Message,
 		}
+	} else if action.Type == ActionTypeSyncResponseAtData {
+		if m.atDataAction == nil {
+			m.atDataAction = &action
+		}
 	} else if action.Type == ActionTypeAsyncBounce {
 		m.bounceActions[to] = action
 	} else if action.Type == ActionTypeAsyncComplaint {
@@ -91,6 +96,14 @@ func (m *Mail) Complete() error {
 
 	if len(m.RcptTo) == 0 {
 		return ErrorNoRcptTo
+	}
+
+	if m.atDataAction != nil {
+		return &smtp.SMTPError{
+			Code:         m.atDataAction.Code,
+			EnhancedCode: m.atDataAction.EnhancedCode.Int(),
+			Message:      m.atDataAction.Message,
+		}
 	}
 
 	if len(m.bounceActions) > 0 {

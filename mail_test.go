@@ -161,6 +161,25 @@ func TestMailWithOneRcptOkayOneFailAndOtherAsync(t *testing.T) {
 
 }
 
+func TestMailAtData(t *testing.T) {
+
+	mail := NewMail()
+	mail.MailFrom = "bounces@example.com"
+
+	// RCPT should accept with 250 OK (no error)
+	err := mail.Rcpt("busy+atdata@localhost")
+	assert.Nil(t, err)
+	assert.Equal(t, []string{"busy+atdata@localhost"}, mail.RcptTo)
+
+	// DATA should return the error
+	err = mail.Complete()
+	smtpErr, ok := err.(*smtp.SMTPError)
+	assert.True(t, ok)
+	assert.Equal(t, 450, smtpErr.Code)
+	assert.Equal(t, "Requested mail action not taken: mailbox busy", smtpErr.Message)
+
+}
+
 func TestSplitAddress(t *testing.T) {
 
 	tests := []struct {
