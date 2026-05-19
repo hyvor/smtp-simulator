@@ -8,6 +8,7 @@ type ActionType int
 
 const (
 	ActionTypeSyncResponse ActionType = iota
+	ActionTypeSyncResponseAtData
 	ActionTypeAsyncBounce
 	ActionTypeAsyncComplaint
 )
@@ -94,6 +95,42 @@ var localPartToAction = map[string]Action{
 		Code:         550,
 		EnhancedCode: [3]int{5, 7, 1},
 		Message:      "Message rejected due to spam content",
+	},
+
+	// At-data bounce responses (250 in RCPT, error in DATA)
+	"busy+atdata": {
+		Type:         ActionTypeSyncResponseAtData,
+		Code:         450,
+		EnhancedCode: [3]int{4, 2, 1},
+		Message:      "Requested mail action not taken: mailbox busy",
+	},
+
+	"tempfail+atdata": {
+		Type:         ActionTypeSyncResponseAtData,
+		Code:         451,
+		EnhancedCode: [3]int{4, 3, 0},
+		Message:      "Requested action aborted: local error in processing",
+	},
+
+	"missing+atdata": {
+		Type:         ActionTypeSyncResponseAtData,
+		Code:         550,
+		EnhancedCode: [3]int{5, 1, 1},
+		Message:      "User unknown",
+	},
+
+	"disabled+atdata": {
+		Type:         ActionTypeSyncResponseAtData,
+		Code:         550,
+		EnhancedCode: [3]int{5, 1, 2},
+		Message:      "Mailbox disabled",
+	},
+
+	"spam+atdata": {
+		Type:         ActionTypeSyncResponseAtData,
+		Code:         550,
+		EnhancedCode: [3]int{5, 7, 1},
+		Message:      "Message rejected due to low sender reputation",
 	},
 
 	// Complaint response

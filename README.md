@@ -1,4 +1,4 @@
-This is a simple SMTP simulator server for bounces and complaints. 
+This is a simple SMTP simulator server for bounces and complaints.
 
 > For Hyvor Relay customers, the email domain is `simulator.relay.hyvor.com`. For example, to simulate a busy mailbox, send an email to `busy@simulator.relay.hyvor.com`.
 
@@ -16,10 +16,10 @@ docker run -p 25:25 hyvor/smtp-simulator
 
 ```yaml
 services:
-    smtp-simulator:
-        image: hyvor/smtp-simulator
-        ports:
-        - "25:25"
+  smtp-simulator:
+    image: hyvor/smtp-simulator
+    ports:
+      - "25:25"
 ```
 
 ### From Source
@@ -63,6 +63,18 @@ These emails accept the message initially but later send a bounce notification (
 | `spam+async@`     | Simulates a spam rejection.         | 550         | 5.7.1         |
 
 - If there are multiple recipients with different bounce types, a single DSN will be sent with all the failed recipients listed.
+
+### At-Data Responses
+
+These emails accept the message in the `RCPT` stage (return `250 OK`) but respond with the bounce error after the `DATA` command is completed.
+
+| Email Local Part   | Description                         | Status Code | Enhanced Code |
+| ------------------ | ----------------------------------- | ----------- | ------------- |
+| `busy+atdata@`     | Simulates a busy mailbox.           | 450         | 4.2.1         |
+| `tempfail+atdata@` | Simulates a temporary failure.      | 451         | 4.3.0         |
+| `missing+atdata@`  | Simulates a hard bounce.            | 550         | 5.1.1         |
+| `disabled+atdata@` | Simulates a disabled email address. | 550         | 5.1.2         |
+| `spam+atdata@`     | Simulates a spam rejection.         | 550         | 5.7.1         |
 
 ### Complaints
 
