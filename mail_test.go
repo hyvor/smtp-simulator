@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+
 func TestProcessMailAsyncBounce(t *testing.T) {
 
 	mail := NewMail()
@@ -28,16 +29,16 @@ func TestProcessMailAsyncBounce(t *testing.T) {
 
 	bouncesTo := ""
 	bouncesActions := map[string]Action{}
-	bouncesDelay := 1
+	bouncesDelay := time.Duration(0)
 
 	writeMx := sync.Mutex{}
 
-	sendBounces = func(originalMailFrom string, bounceActions map[string]Action, delaySeconds int) {
+	sendBounces = func(originalMailFrom string, bounceActions map[string]Action, delay time.Duration) {
 		writeMx.Lock()
 		defer writeMx.Unlock()
 		bouncesTo = originalMailFrom
 		bouncesActions = bounceActions
-		bouncesDelay = delaySeconds
+		bouncesDelay = delay
 	}
 
 	err = mail.Complete()
@@ -55,7 +56,7 @@ func TestProcessMailAsyncBounce(t *testing.T) {
 	assert.Equal(t, "5.1.1", action.EnhancedCode.String())
 	assert.Equal(t, 550, action.Code)
 
-	assert.Equal(t, 0, bouncesDelay)
+	assert.Equal(t, 250*time.Millisecond, bouncesDelay)
 
 	mail.MailFrom = "bounce@example.com"
 	err = mail.Rcpt("unknown@localhost")
@@ -90,11 +91,11 @@ func TestProcessMailComplaint(t *testing.T) {
 
 	complaintSendTo := ""
 	complaintRecipient := ""
-	complaintDelay := 1
+	complaintDelay := time.Duration(0)
 
 	mx := sync.Mutex{}
 
-	sendComplaint = func(originalMailFrom string, to string, delay int) {
+	sendComplaint = func(originalMailFrom string, to string, delay time.Duration) {
 		mx.Lock()
 		defer mx.Unlock()
 		complaintSendTo = originalMailFrom
@@ -113,7 +114,7 @@ func TestProcessMailComplaint(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "bounces@example.com", complaintSendTo)
 	assert.Equal(t, "complaint@localhost", complaintRecipient)
-	assert.Equal(t, 0, complaintDelay)
+	assert.Equal(t, 250*time.Millisecond, complaintDelay)
 }
 
 func TestMailWithOneRcptOkayOtherFail(t *testing.T) {

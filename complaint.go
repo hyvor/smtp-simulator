@@ -9,9 +9,9 @@ import (
 
 var sendComplaint = sendComplaintHandler
 
-func sendComplaintHandler(originalMailFrom string, to string, delay int) {
+func sendComplaintHandler(originalMailFrom string, to string, delay time.Duration) {
 	if delay > 0 {
-		time.Sleep(time.Duration(delay) * time.Second)
+		time.Sleep(delay)
 	}
 
 	data := ArfTemplateData{
