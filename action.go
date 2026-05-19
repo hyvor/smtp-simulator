@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 )
 
 type ActionType int
@@ -28,7 +29,7 @@ type Action struct {
 	Code         int
 	EnhancedCode EnhancedCode
 	Message      string
-	AsyncDelay   int // in seconds
+	AsyncDelay   time.Duration
 }
 
 var localPartToAction = map[string]Action{
@@ -81,6 +82,7 @@ var localPartToAction = map[string]Action{
 		Code:         550,
 		EnhancedCode: [3]int{5, 1, 1},
 		Message:      "User unknown",
+		AsyncDelay:   250 * time.Millisecond,
 	},
 
 	"disabled+async": {
@@ -88,6 +90,7 @@ var localPartToAction = map[string]Action{
 		Code:         550,
 		EnhancedCode: [3]int{5, 1, 2},
 		Message:      "Mailbox disabled",
+		AsyncDelay:   250 * time.Millisecond,
 	},
 
 	"spam+async": {
@@ -95,6 +98,7 @@ var localPartToAction = map[string]Action{
 		Code:         550,
 		EnhancedCode: [3]int{5, 7, 1},
 		Message:      "Message rejected due to spam content",
+		AsyncDelay:   250 * time.Millisecond,
 	},
 
 	// At-data bounce responses (250 in RCPT, error in DATA)
@@ -135,7 +139,8 @@ var localPartToAction = map[string]Action{
 
 	// Complaint response
 	"complaint": {
-		Type: ActionTypeAsyncComplaint,
+		Type:       ActionTypeAsyncComplaint,
+		AsyncDelay: 250 * time.Millisecond,
 	},
 
 	// this is always extended

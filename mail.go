@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"strings"
+	"time"
 
 	netsmtp "net/smtp"
 
@@ -22,7 +23,7 @@ type Mail struct {
 type PendingComplaint struct {
 	OriginalMailFrom string
 	To               string
-	Delay            int
+	Delay            time.Duration
 }
 
 func NewMail() Mail {
@@ -107,7 +108,7 @@ func (m *Mail) Complete() error {
 	}
 
 	if len(m.bounceActions) > 0 {
-		delay := 0
+		delay := time.Duration(0)
 		for _, action := range m.bounceActions {
 			if action.AsyncDelay > delay {
 				delay = action.AsyncDelay
