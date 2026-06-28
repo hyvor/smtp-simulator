@@ -1,8 +1,13 @@
 package main
 
 import (
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
+
+	"github.com/emersion/go-smtp"
 )
 
 type ActionType int
@@ -142,9 +147,61 @@ var localPartToAction = map[string]Action{
 		Type:       ActionTypeAsyncComplaint,
 		AsyncDelay: 250 * time.Millisecond,
 	},
+}
 
-	// this is always extended
-	"custom": {
-		Type: ActionTypeSyncResponse,
-	},
+const customPrefix = "custom+"
+
+// customSpec is the JSON shape encoded (hex) in the local part of a
+// custom+<hex>@... recipient address.
+type customSpec struct {
+	Status  int    `json:"status"`
+	Message string `json:"message"`
+	At      string `json:"at"`
+}
+
+// parseCustomAction decodes a "custom+<hex>" local part into an Action.
+// The message is emitted verbatim (EnhancedCode is NoEnhancedCode), so the
+// caller controls the entire response line after the status code, including
+// whether an enhanced code appears. On malformed input it returns an
+// *smtp.SMTPError (501) so the caller can return it directly on the wire.
+func parseCustomAction(local string) (Action, error) {
+	encoded := local[len(customPrefix):] // slice from original-case local; hex is case-insensitive
+	if encoded == "" {
+		return Action{}, customErr("requires a hex-encoded JSON spec: custom+<hex>@domain")
+	}
+
+	raw, err := hex.DecodeString(encoded)
+	if err != nil {
+		return Action{}, customErr("local part is not valid hex")
+	}
+
+	var spec customSpec
+	if err := json.Unmarshal(raw, &spec); err != nil {
+		return Action{}, customErr("decoded payload is not valid JSON")
+	}
+
+	if spec.Status < 200 || spec.Status > 599 {
+		return Action{}, customErr("status must be a valid SMTP code (200-599)")
+	}
+
+	var actionType ActionType
+	switch strings.ToLower(spec.At) {
+	case "", "rcpt":
+		actionType = ActionTypeSyncResponse
+	case "data":
+		actionType = ActionTypeSyncResponseAtData
+	default:
+		return Action{}, customErr(`"at" must be "rcpt" or "data"`)
+	}
+
+	return Action{
+		Type:         actionType,
+		Code:         spec.Status,
+		EnhancedCode: EnhancedCode{-1, -1, -1}, // NoEnhancedCode -> emit message verbatim
+		Message:      spec.Message,
+	}, nil
+}
+
+func customErr(reason string) *smtp.SMTPError {
+	return &smtp.SMTPError{Code: 501, Message: "Invalid custom action: " + reason}
 }
