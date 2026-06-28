@@ -189,6 +189,11 @@ func parseCustomAction(local string) (Action, error) {
 	case "", "rcpt":
 		actionType = ActionTypeSyncResponse
 	case "data":
+		// "data" defers a failure until after DATA; a 2xx accept has no
+		// meaningful "fail after accept" semantics there.
+		if spec.Status >= 200 && spec.Status < 300 {
+			return Action{}, customErr(`"at":"data" cannot be used with a 2xx status`)
+		}
 		actionType = ActionTypeSyncResponseAtData
 	default:
 		return Action{}, customErr(`"at" must be "rcpt" or "data"`)

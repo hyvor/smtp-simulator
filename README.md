@@ -100,6 +100,7 @@ For full control over the response, send to `custom+<hex>@` where `<hex>` is the
 
 - The message is sent verbatim — the server does not inject an enhanced status code. To include one, put it in `message` (e.g. `"5.7.1 bad reputation"` → `550 5.7.1 bad reputation`); to omit it, leave it out (e.g. `"bad reputation"` → `550 bad reputation`).
 - A `status` of `250` accepts the recipient.
+- `"at":"data"` requires a failure status; a 2xx status combined with `"at":"data"` is rejected with `501` (there is no "fail after accept").
 - Malformed hex, malformed JSON, an out-of-range `status`, or an unknown `at` value are rejected with `501`.
 
 #### Encoding the spec

@@ -311,6 +311,19 @@ func TestCustomActionInvalidStatus(t *testing.T) {
 	}
 }
 
+func TestCustomActionAtDataWith2xxRejected(t *testing.T) {
+
+	mail := NewMail()
+	mail.MailFrom = "bounces@example.com"
+
+	err := mail.Rcpt(customAddr(t, `{"status":250,"message":"OK","at":"data"}`))
+	smtpErr, ok := err.(*smtp.SMTPError)
+	assert.True(t, ok)
+	assert.Equal(t, 501, smtpErr.Code)
+	assert.Contains(t, smtpErr.Message, "2xx")
+	assert.Empty(t, mail.RcptTo)
+}
+
 func TestCustomActionUppercaseHex(t *testing.T) {
 
 	mail := NewMail()
