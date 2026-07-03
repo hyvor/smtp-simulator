@@ -84,15 +84,36 @@ These emails accept the message initially but later send a complaint notificatio
 | ---------------- | --------------------------- |
 | `complaint@`     | Simulates a user complaint. |
 
-<!-- ### Custom Responses
+### Custom Responses
 
-Sometimes, you might need further customization of the server response. To simulate these scenarios, send emails to `custom@` and use the following headers to define the response:
+For full control over the response, send to `custom+<hex>@` where `<hex>` is the hex-encoded JSON of a spec:
 
-```
-X-Custom-Status-Code: <status-code>
-X-Custom-Enhanced-Code: <enhanced-code>
-X-Custom-Message: <custom-message>
-X-Custom-Delay: <delay-in-seconds-for-async-responses>
+```json
+{ "status": 550, "message": "5.7.1 bad reputation", "at": "rcpt" }
 ```
 
-It is also possible to extend the responses from any other email address with these custom headers. The default delay is zero (bounce emails are sent immediately). -->
+| Field     | Type   | Required | Description                                                                                           |
+| --------- | ------ | -------- | ----------------------------------------------------------------------------------------------------- |
+| `status`  | int    | yes      | SMTP status code to return (200–599).                                                                 |
+| `message` | string | no       | Text emitted **verbatim** after the status code.                                                      |
+| `at`      | string | no       | When to respond: `"rcpt"` (default) responds during `RCPT`; `"data"` accepts then fails after `DATA`. |
+
+- The message is sent verbatim — the server does not inject an enhanced status code. To include one, put it in `message` (e.g. `"5.7.1 bad reputation"` → `550 5.7.1 bad reputation`); to omit it, leave it out (e.g. `"bad reputation"` → `550 bad reputation`).
+- A `status` of `250` accepts the recipient.
+- `"at":"data"` requires a failure status; a 2xx status combined with `"at":"data"` is rejected with `501` (there is no "fail after accept").
+- Malformed hex, malformed JSON, an out-of-range `status`, or an unknown `at` value are rejected with `501`.
+
+#### Encoding the spec
+
+```bash
+printf '%s' '{"status":550,"message":"5.7.1 bad reputation","at":"rcpt"}' | xxd -p | tr -d '\n'
+# 7b22737461747573223a3535302c226d657373616765223a22352e372e31206261642072657075746174696f6e222c226174223a2272637074227d
+```
+
+Then send to `custom+<that-hex>@simulator.relay.hyvor.com`, e.g. with [swaks](https://github.com/jetmore/swaks):
+
+```bash
+HEX=$(printf '%s' '{"status":550,"message":"5.7.1 bad reputation"}' | xxd -p | tr -d '\n')
+swaks --server localhost:25 --from sender@example.com --to "custom+$HEX@localhost"
+# -> 550 5.7.1 bad reputation
+```

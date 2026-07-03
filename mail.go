@@ -49,6 +49,14 @@ func (m *Mail) Rcpt(to string) error {
 
 	local, _ := splitAddress(to)
 
+	if strings.HasPrefix(strings.ToLower(local), customPrefix) {
+		action, err := parseCustomAction(local)
+		if err != nil {
+			return err // *smtp.SMTPError
+		}
+		return m.applyAction(to, action)
+	}
+
 	action, exists := localPartToAction[strings.ToLower(local)]
 
 	if !exists {
@@ -57,6 +65,14 @@ func (m *Mail) Rcpt(to string) error {
 			Message: "Unknown local part",
 		}
 	}
+
+	return m.applyAction(to, action)
+}
+
+// applyAction applies a resolved Action for recipient `to`, returning an
+// *smtp.SMTPError for synchronous rejections or nil for accepted / deferred
+// (at-data, async) actions.
+func (m *Mail) applyAction(to string, action Action) error {
 
 	if action.Type == ActionTypeSyncResponse {
 		if action.Code == 250 {
@@ -83,7 +99,7 @@ func (m *Mail) Rcpt(to string) error {
 		})
 	}
 
-	// reached for async actions
+	// reached for async / at-data actions
 	m.RcptTo = append(m.RcptTo, to)
 
 	return nil // OK Response

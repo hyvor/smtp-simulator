@@ -1,9 +1,11 @@
 package main
 
 import (
+	"encoding/hex"
 	"errors"
 	"net"
 	netsmtp "net/smtp"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -12,6 +14,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// customAddr builds a custom+<hex>@localhost recipient from a raw JSON spec.
+func customAddr(t *testing.T, spec string) string {
+	t.Helper()
+	return "custom+" + hex.EncodeToString([]byte(spec)) + "@localhost"
+}
 
 func TestProcessMailAsyncBounce(t *testing.T) {
 
@@ -179,6 +186,156 @@ func TestMailAtData(t *testing.T) {
 	assert.Equal(t, 450, smtpErr.Code)
 	assert.Equal(t, "Requested mail action not taken: mailbox busy", smtpErr.Message)
 
+}
+
+func TestCustomActionAtRcpt(t *testing.T) {
+
+	mail := NewMail()
+	mail.MailFrom = "bounces@example.com"
+
+	err := mail.Rcpt(customAddr(t, `{"status":550,"message":"5.7.1 bad reputation"}`))
+
+	smtpErr, ok := err.(*smtp.SMTPError)
+	assert.True(t, ok)
+	assert.Equal(t, 550, smtpErr.Code)
+	assert.Equal(t, "5.7.1 bad reputation", smtpErr.Message)
+	assert.Equal(t, smtp.NoEnhancedCode, smtpErr.EnhancedCode)
+	assert.Empty(t, mail.RcptTo)
+}
+
+func TestCustomActionAtData(t *testing.T) {
+
+	mail := NewMail()
+	mail.MailFrom = "bounces@example.com"
+
+	addr := customAddr(t, `{"status":550,"message":"5.7.1 bad reputation","at":"data"}`)
+
+	// RCPT accepts with 250 OK (no error)
+	err := mail.Rcpt(addr)
+	assert.Nil(t, err)
+	assert.Equal(t, []string{addr}, mail.RcptTo)
+
+	// DATA returns the error
+	err = mail.Complete()
+	smtpErr, ok := err.(*smtp.SMTPError)
+	assert.True(t, ok)
+	assert.Equal(t, 550, smtpErr.Code)
+	assert.Equal(t, "5.7.1 bad reputation", smtpErr.Message)
+	assert.Equal(t, smtp.NoEnhancedCode, smtpErr.EnhancedCode)
+}
+
+func TestCustomActionAtOmittedDefaultsToRcpt(t *testing.T) {
+
+	mail := NewMail()
+	mail.MailFrom = "bounces@example.com"
+
+	err := mail.Rcpt(customAddr(t, `{"status":450,"message":"slow down"}`))
+
+	smtpErr, ok := err.(*smtp.SMTPError)
+	assert.True(t, ok)
+	assert.Equal(t, 450, smtpErr.Code)
+	assert.Empty(t, mail.RcptTo)
+}
+
+func TestCustomActionVerbatimMessage(t *testing.T) {
+
+	// Message is emitted verbatim; EnhancedCode is NoEnhancedCode so the caller
+	// controls whether an enhanced code appears at all.
+	action, err := parseCustomAction("custom+" + hex.EncodeToString([]byte(`{"status":550,"message":"bad reputation"}`)))
+	assert.NoError(t, err)
+	assert.Equal(t, EnhancedCode{-1, -1, -1}, action.EnhancedCode)
+	assert.Equal(t, "bad reputation", action.Message)
+	assert.Equal(t, 550, action.Code)
+	assert.Equal(t, ActionTypeSyncResponse, action.Type)
+}
+
+func TestCustomActionAccept(t *testing.T) {
+
+	mail := NewMail()
+	mail.MailFrom = "bounces@example.com"
+
+	addr := customAddr(t, `{"status":250,"message":"OK"}`)
+
+	err := mail.Rcpt(addr)
+	assert.Nil(t, err)
+	assert.Equal(t, []string{addr}, mail.RcptTo)
+
+	err = mail.Complete()
+	assert.Nil(t, err)
+}
+
+func TestCustomActionInvalidHex(t *testing.T) {
+
+	mail := NewMail()
+	mail.MailFrom = "bounces@example.com"
+
+	err := mail.Rcpt("custom+zzzz@localhost")
+	smtpErr, ok := err.(*smtp.SMTPError)
+	assert.True(t, ok)
+	assert.Equal(t, 501, smtpErr.Code)
+}
+
+func TestCustomActionInvalidJSON(t *testing.T) {
+
+	mail := NewMail()
+	mail.MailFrom = "bounces@example.com"
+
+	err := mail.Rcpt(customAddr(t, "not json"))
+	smtpErr, ok := err.(*smtp.SMTPError)
+	assert.True(t, ok)
+	assert.Equal(t, 501, smtpErr.Code)
+}
+
+func TestCustomActionInvalidAt(t *testing.T) {
+
+	mail := NewMail()
+	mail.MailFrom = "bounces@example.com"
+
+	err := mail.Rcpt(customAddr(t, `{"status":550,"message":"x","at":"helo"}`))
+	smtpErr, ok := err.(*smtp.SMTPError)
+	assert.True(t, ok)
+	assert.Equal(t, 501, smtpErr.Code)
+	assert.Contains(t, smtpErr.Message, "at")
+}
+
+func TestCustomActionInvalidStatus(t *testing.T) {
+
+	mail := NewMail()
+	mail.MailFrom = "bounces@example.com"
+
+	for _, spec := range []string{`{"status":0,"message":"x"}`, `{"status":700,"message":"x"}`} {
+		err := mail.Rcpt(customAddr(t, spec))
+		smtpErr, ok := err.(*smtp.SMTPError)
+		assert.True(t, ok, spec)
+		assert.Equal(t, 501, smtpErr.Code, spec)
+	}
+}
+
+func TestCustomActionAtDataWith2xxRejected(t *testing.T) {
+
+	mail := NewMail()
+	mail.MailFrom = "bounces@example.com"
+
+	err := mail.Rcpt(customAddr(t, `{"status":250,"message":"OK","at":"data"}`))
+	smtpErr, ok := err.(*smtp.SMTPError)
+	assert.True(t, ok)
+	assert.Equal(t, 501, smtpErr.Code)
+	assert.Contains(t, smtpErr.Message, "2xx")
+	assert.Empty(t, mail.RcptTo)
+}
+
+func TestCustomActionUppercaseHex(t *testing.T) {
+
+	mail := NewMail()
+	mail.MailFrom = "bounces@example.com"
+
+	encoded := strings.ToUpper(hex.EncodeToString([]byte(`{"status":550,"message":"5.7.1 bad reputation"}`)))
+	err := mail.Rcpt("custom+" + encoded + "@localhost")
+
+	smtpErr, ok := err.(*smtp.SMTPError)
+	assert.True(t, ok)
+	assert.Equal(t, 550, smtpErr.Code)
+	assert.Equal(t, "5.7.1 bad reputation", smtpErr.Message)
 }
 
 func TestSplitAddress(t *testing.T) {
